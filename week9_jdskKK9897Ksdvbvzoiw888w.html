@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMP1860 &middot; Activity Sheet 1.9</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/comp1860.css">
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFIG - edit this block each year. Nothing below it should need changing.
+   ═══════════════════════════════════════════════════════════════════════ */
+var CONFIG = {
+  moduleTitle   : "COMP1860 - Computer Systems and Architecture",
+  sheetName     : "Activity Sheet 1.9",
+  sheetSubtitle : "Memory - reading and writing RAM",
+  dueDate       : "Friday 4 December 2026, 17:00",
+  expectedTime  : "2-3 hours",
+  genAI         : "Amber",
+  genAINote     : "AI tools may be used in an assistive role - you are permitted to use them for testing your work.",
+  outcomes      : [
+    "understood how a RAM chip is addressed, read and written",
+    "understood why a clocked chip needs tick and tock rather than eval",
+    "written a test script that establishes a chip meets its specification"
+  ]
+};
+/* ═══════════════════════════════════════════════════════════════════════ */
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="entry noprint">
+    <h1 id="entry-title">Activity Sheet 1.9</h1>
+    <p class="lede">Enter your University of Leeds email address to generate your
+      sheet. You will get the same question every time, so you can come back to
+      this page whenever you like.</p>
+    <p class="warn-key">Use the <strong>same address you sign in to Minerva
+      with</strong>. Your questions are built from it, so a different address
+      gives you a different sheet &mdash; and you will be marked against the
+      one belonging to your own address. Capitalisation and stray spaces do not
+      matter.</p>
+    <div class="field">
+      <div style="flex:1 1 300px">
+        <label class="lab" for="email">Email address</label>
+        <input type="email" id="email" placeholder="sc12abc@leeds.ac.uk" autocomplete="email" spellcheck="false">
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <button id="go">Generate</button>
+        <button id="print" class="ghost">Print</button>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="sheet"><div id="head"></div><div id="body_"></div></div>
+</div>
+
+<script src="assets/comp1860.js"></script>
+<script>
+"use strict";
+
+function render(email){
+  var sp = buildWeek9(email);
+  var wr = sp.writes.map(function(w){
+    return "RAM[" + w[0] + "] \u2190 " + w[1];
+  });
+
+  var head = $("head");
+  head.innerHTML = "";
+  head.appendChild(renderTitleBlock(CONFIG, [
+    ["Issued to", sp.email],
+    ["Store",     wr.join(", "), "fp"],
+    ["No-op on",  "RAM[" + sp.noopAddr + "]"],
+    ["Deliver",   "RAM8.tst"]
+  ]));
+
+  var b = $("body_"); b.innerHTML = "";
+  b.appendChild(variantBanner(sp.email, sp.fingerprint));
+  renderFrontMatter(b, CONFIG);
+
+  /* ---- summary --------------------------------------------------------- */
+  var s = node("section");
+  s.appendChild(node("h4", null, "Coursework summary"));
+  s.appendChild(node("p", null,
+    "Every chip you have built so far has been tested by a script somebody else "
+    + "wrote for you. This week you write the script, and the chip is given to "
+    + "you: a working <code>RAM8</code>, eight registers of sixteen bits each."));
+  s.appendChild(node("pre", null,
+    "CHIP RAM8 {\n    IN in[16], load, address[3];\n    OUT out[16];\n}"));
+  s.appendChild(node("p", null,
+    "Its specification is short. If <code>load</code> is 1, the register "
+    + "selected by <code>address</code> takes the value on <code>in</code>. "
+    + "Otherwise nothing changes. Either way <code>out</code> emits the value of "
+    + "the selected register."));
+  s.appendChild(node("p", null,
+    "That last sentence hides the thing this activity is really about. "
+    + "<code>out</code> follows <code>address</code> <em>immediately</em>, "
+    + "because selecting a register is combinational. But <code>in</code> is only "
+    + "stored when the <strong>clock ticks</strong>. A test script that sets "
+    + "<code>in</code> and <code>load</code> and then calls <code>eval</code> "
+    + "stores nothing at all - the value has nowhere to go until the clock moves."));
+  s.appendChild(node("p", null,
+    "So a script for a clocked chip advances time explicitly, with "
+    + "<code>tick</code> and <code>tock</code> in place of <code>eval</code>:"));
+  s.appendChild(node("pre", null,
+    "set address 2,\nset in 1234,\nset load 1,\ntick,\ntock,"));
+  b.appendChild(s);
+
+  /* ---- Q1 -------------------------------------------------------------- */
+  var q1 = question(b, {title:"1. A test script for RAM8", portfolio:true});
+  q1.appendChild(node("p", null,
+    "Write a test script named <code>RAM8.tst</code> that establishes the "
+    + "supplied <code>RAM8</code> meets its specification. Your script has three "
+    + "phases and must produce output in exactly the form described below."));
+
+  q1.appendChild(node("h4", null, "Header"));
+  q1.appendChild(node("p", null,
+    "Begin your script with these four lines. The <code>output-list</code> fixes "
+    + "the columns and their widths, so copy it exactly:"));
+  q1.appendChild(node("pre", null,
+    "load RAM8.hdl,\noutput-file RAM8.out,\ncompare-to RAM8.cmp,\n"
+    + "output-list address%D3.1.3 out%D1.5.1;"));
+
+  q1.appendChild(node("h4", null, "Phase A - store your three values"));
+  q1.appendChild(node("p", null,
+    "Store the following values, in this order. Produce <strong>no "
+    + "output</strong> during this phase."));
+  var tbl = node("div", "scroll");
+  var t = document.createElement("table");
+  var hr = document.createElement("tr");
+  ["address", "value"].forEach(function(h){
+    var th = document.createElement("th"); th.textContent = h; hr.appendChild(th);
+  });
+  t.appendChild(hr);
+  sp.writes.forEach(function(w){
+    var tr = document.createElement("tr");
+    w.forEach(function(v){
+      var td = document.createElement("td"); td.textContent = v; tr.appendChild(td);
+    });
+    t.appendChild(tr);
+  });
+  tbl.appendChild(t);
+  q1.appendChild(tbl);
+
+  q1.appendChild(node("h4", null, "Phase B - read everything back"));
+  q1.appendChild(node("p", null,
+    "Set <code>load</code> to 0, then read back <strong>all eight</strong> "
+    + "addresses in order from 0 to 7, producing one line of output for each. "
+    + "Five of them were never written, and should still read 0."));
+
+  q1.appendChild(node("h4", null, "Phase C - prove that load = 0 changes nothing"));
+  q1.appendChild(node("p", null,
+    "Select address <strong>" + sp.noopAddr + "</strong>, put the value "
+    + "<strong>" + sp.noopValue + "</strong> on <code>in</code>, leave "
+    + "<code>load</code> at 0, and clock the chip. Then read that address and "
+    + "produce one final line of output. It must still hold <strong>"
+    + sp.noopExpected + "</strong> - the value you stored in Phase A."));
+
+  q1.appendChild(node("p", null,
+    "Your script therefore produces nine lines of output plus the header line, "
+    + "in that order."));
+
+  var dl = node("div", "dl noprint");
+  var bh = node("button", null, "Download RAM8.hdl");
+  var bc = node("button", "ghost", "Download RAM8.cmp");
+  bh.onclick = function(){ download("RAM8.hdl", RAM8_HDL); };
+  bc.onclick = function(){ download("RAM8.cmp", ram8Cmp(sp)); };
+  dl.appendChild(bh); dl.appendChild(bc);
+  q1.appendChild(dl);
+  q1.appendChild(node("div", "note",
+    "Put both files in the same folder as your script. The compare file is what "
+    + "your output must match, so once the simulator reports the comparison "
+    + "ended successfully, you are done. Submit <strong>only "
+    + "<code>RAM8.tst</code></strong>, via the Gradescope link in the <em>Submit my work</em> folder on Minerva - not the chip, and not "
+    + "the compare file."));
+
+  /* ---- Q2 -------------------------------------------------------------- */
+  var q2 = question(b, {title:"2. Catching the clock in the act", advanced:true});
+  q2.appendChild(node("p", null,
+    "A script may produce output <em>between</em> <code>tick</code> and "
+    + "<code>tock</code>, part-way through a clock cycle. Write a short script "
+    + "that stores a new value in an address that already holds something, and "
+    + "outputs three times: before the clock moves, between the tick and the "
+    + "tock, and after the tock."));
+  q2.appendChild(node("p", null,
+    "Which of the three lines shows the new value, and which shows the old one? "
+    + "Explain in a sentence why a register must behave this way - what would go "
+    + "wrong in a counter if its output changed the instant its input did?"));
+
+  $("sheet").classList.add("on");
+  try{ history.replaceState(null, "", "?e=" + encodeURIComponent(sp.email)); }catch(e){}
+}
+
+/* The supplied chip, offered as a download so students need not hunt for it. */
+var RAM8_HDL = [
+  "// COMP1860 Activity Sheet 1.9 - supplied chip, do not modify.",
+  "// Adapted from www.nand2tetris.org, The Elements of Computing Systems,",
+  "// Nisan and Schocken, MIT Press.",
+  "/**",
+  " * Memory of eight 16-bit registers.",
+  " * If load is asserted, the value of the register selected by",
+  " * address is set to in; Otherwise, the value does not change.",
+  " * The value of the selected register is emitted by out.",
+  " */",
+  "CHIP RAM8 {",
+  "    IN in[16], load, address[3];",
+  "    OUT out[16];",
+  "",
+  "    PARTS:",
+  "    DMux8Way(in=load,sel=address,a=l1,b=l2,c=l3,d=l4,e=l5,f=l6,g=l7,h=l8);",
+  "    Mux8Way16(a=oR1,b=oR2,c=oR3,d=oR4,e=oR5,f=oR6,g=oR7,h=oR8,sel=address,out=out);",
+  "    Register(in=in, load=l1,out=oR1);",
+  "    Register(in=in, load=l2,out=oR2);",
+  "    Register(in=in, load=l3,out=oR3);",
+  "    Register(in=in, load=l4,out=oR4);",
+  "    Register(in=in, load=l5,out=oR5);",
+  "    Register(in=in, load=l6,out=oR6);",
+  "    Register(in=in, load=l7,out=oR7);",
+  "    Register(in=in, load=l8,out=oR8);",
+  "}"
+].join("\n") + "\n";
+
+/* ---- bootstrap -------------------------------------------------------- */
+document.getElementById("entry-title").textContent = CONFIG.sheetName;
+document.title = CONFIG.moduleTitle + " - " + CONFIG.sheetName;
+
+function submit(){
+  var v = $("email").value.trim(), e = $("err");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+    e.textContent = "That does not look like an email address. Use the address you sign in to Minerva with.";
+    e.classList.add("on"); return;
+  }
+  e.classList.remove("on");
+  render(v);
+}
+$("go").addEventListener("click", submit);
+$("email").addEventListener("keydown", function(ev){ if(ev.key === "Enter") submit(); });
+$("print").addEventListener("click", function(){ window.print(); });
+(function(){
+  var m = /[?&]e=([^&]+)/.exec(location.search);
+  if(m){ var v = decodeURIComponent(m[1]); $("email").value = v; render(v); }
+})();
+</script>
+</body>
+</html>

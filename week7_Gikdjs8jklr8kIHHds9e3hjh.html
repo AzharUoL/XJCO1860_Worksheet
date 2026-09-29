@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMP1860 &middot; Activity Sheet 1.7</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/comp1860.css">
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFIG - edit this block each year. Nothing below it should need changing.
+   ═══════════════════════════════════════════════════════════════════════ */
+var CONFIG = {
+  moduleTitle   : "COMP1860 - Computer Systems and Architecture",
+  sheetName     : "Activity Sheet 1.7",
+  sheetSubtitle : "Seven-segment decoder",
+  dueDate       : "Friday 20 November 2026, 17:00",
+  expectedTime  : "2-3 hours",
+  genAI         : "Amber",
+  genAINote     : "AI tools may be used in an assistive role - you are permitted to use them for testing your HDL files.",
+  outcomes      : [
+    "applied minimisation of Boolean expressions to simplify a logic circuit",
+    "used don't-care conditions to simplify a design",
+    "analysed and designed a combinational logic circuit",
+    "implemented and debugged a combinational circuit using HDL"
+  ]
+};
+/* ═══════════════════════════════════════════════════════════════════════ */
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="entry noprint">
+    <h1 id="entry-title">Activity Sheet 1.7</h1>
+    <p class="lede">Enter your University of Leeds email address to generate your
+      sheet. You will get the same question every time, so you can come back to
+      this page whenever you like. Use your browser&rsquo;s Print command to save
+      it as a PDF.</p>
+    <p class="warn-key">Use the <strong>same address you sign in to Minerva
+      with</strong>. Your questions are built from it, so a different address
+      gives you a different sheet &mdash; and you will be marked against the
+      one belonging to your own address. Capitalisation and stray spaces do not
+      matter.</p>
+    <div class="field">
+      <div style="flex:1 1 300px">
+        <label class="lab" for="email">Email address</label>
+        <input type="email" id="email" placeholder="sc12abc@leeds.ac.uk" autocomplete="email" spellcheck="false">
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <button id="go">Generate</button>
+        <button id="print" class="ghost">Print</button>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="sheet"><div id="head"></div><div id="body_"></div></div>
+</div>
+
+<script src="assets/comp1860.js"></script>
+<script>
+"use strict";
+
+function render(email){
+  var sp = buildWeek7(email);
+
+  var head = $("head");
+  head.innerHTML = "";
+  head.appendChild(renderTitleBlock(CONFIG, [
+    ["Issued to",    sp.email],
+    ["Your segment", sp.segment, "fp"],
+    ["Your display", sp.alphabetName],
+    ["Chip",         "DecoderSegment.hdl"]
+  ]));
+
+  var b = $("body_"); b.innerHTML = "";
+  b.appendChild(variantBanner(sp.email, sp.fingerprint));
+  renderFrontMatter(b, CONFIG);
+
+  /* ---- summary --------------------------------------------------------- */
+  var s = node("section");
+  s.appendChild(node("h4", null, "Coursework summary"));
+  s.appendChild(node("p", null,
+    "A seven-segment display shows a character by lighting some of its seven "
+    + "bars. The bars are named <code>a</code> to <code>g</code>:"));
+  var key = node("figure");
+  key.style.maxWidth = "250px";
+  key.appendChild(drawSevenSeg(PINS, null, true));
+  key.appendChild(node("figcaption", null,
+    "All seven segments lit. Segment g is the centre bar."));
+  s.appendChild(key);
+  s.appendChild(node("p", null,
+    "A <em>decoder</em> takes a 4-bit input code and works out, for each "
+    + "segment, whether that segment should be on. <strong>You are responsible "
+    + "for one segment only.</strong> Seven students between them can build a "
+    + "decoder for the whole display, which is Question 2."));
+  b.appendChild(s);
+
+  /* ---- Q1 -------------------------------------------------------------- */
+  var q1 = question(b, {title:"1. Your segment", portfolio:true});
+  q1.appendChild(node("p", null,
+    "Your display shows the ten characters below. The 4-bit input bus "
+    + "<code>in</code> selects which one is shown, with <code>in[3]</code> the "
+    + "most significant bit and <code>in[0]</code> the least. Each tile gives "
+    + "the character, its decimal code and its binary code."));
+
+  var strip = node("div", "glyphs");
+  sp.rows.forEach(function(r){ strip.appendChild(glyphTile(r[0], r[1], sp.segment)); });
+  q1.appendChild(strip);
+  q1.appendChild(node("p", "note",
+    "Your segment, <strong>" + sp.segment + "</strong>, is drawn in amber "
+    + "wherever it is lit. Segments in pale grey are off for that character."));
+
+  // The letter set draws B and D in lowercase. That is not a slip: seven
+  // segments cannot distinguish an uppercase B from 8, or a D from 0, which is
+  // why every hex display shows A b C d E F. Worth saying, or the tiles look
+  // like a mistake.
+  if(sp.alphabetName.indexOf("B") >= 0){
+    q1.appendChild(node("p", "note",
+      "<strong>B</strong> and <strong>D</strong> are drawn in lowercase shapes. "
+      + "A seven-segment display cannot show them any other way - an uppercase "
+      + "B would light the same segments as 8, and a D the same as 0. That is "
+      + "why hex displays everywhere read A b C d E F. Use the shape shown in "
+      + "the tile, not the letter in the caption, when working out your truth "
+      + "table."));
+  }
+
+  var ex = sp.rows[0];
+  var exOn = GLYPH[ex[1]].indexOf(sp.segment) >= 0;
+  q1.appendChild(node("h4", null, "Worked example"));
+  q1.appendChild(node("p", null,
+    "Take input code <strong>" + ex[0] + "</strong>, which is <code>"
+    + bin4(ex[0]) + "</code> in binary. That code displays the character "
+    + "<strong>" + ex[1] + "</strong>, which lights segments <code>"
+    + GLYPH[ex[1]] + "</code>. Your segment <strong>" + sp.segment
+    + "</strong> is " + (exOn
+        ? "among them, so your decoder must output <strong>1</strong>"
+        : "<em>not</em> among them, so your decoder must output <strong>0</strong>")
+    + " for this code. Work through the other nine characters the same way to "
+    + "build your truth table."));
+
+  q1.appendChild(node("h4", null, "(a) Define the function"));
+  q1.appendChild(node("p", null,
+    "For your segment, define the output of the decoder in three forms: as a "
+    + "truth table, as a Karnaugh map, and as a minimal Boolean expression."));
+  q1.appendChild(node("p", "note",
+    "Codes 10 to 15 never reach your decoder, so those rows are "
+    + "<strong>don't-cares</strong>. Use them - filling each one with whichever "
+    + "value suits your Karnaugh map will usually give you a smaller circuit, "
+    + "and your chip is only ever tested on codes 0 to 9."));
+
+  q1.appendChild(node("h4", null, "(b) Implement it"));
+  q1.appendChild(node("p", null,
+    "Produce an HDL file implementing your expression. The chip must have "
+    + "exactly this preamble - the output pin is named after your segment:"));
+  q1.appendChild(node("pre", null,
+    "CHIP DecoderSegment {\n    IN in[4];\n    OUT " + sp.segment
+    + ";\n\n    PARTS:\n\n}"));
+
+  var dl = node("div", "dl noprint");
+  var bt = node("button", null, "Download DecoderSegment.tst");
+  var bc = node("button", "ghost", "Download DecoderSegment.cmp");
+  bt.onclick = function(){ download("DecoderSegment.tst", segmentTst(sp)); };
+  bc.onclick = function(){ download("DecoderSegment.cmp", segmentCmp(sp)); };
+  dl.appendChild(bt); dl.appendChild(bc);
+  q1.appendChild(dl);
+  q1.appendChild(node("div", "note",
+    "The compare file gives away the answer to part (a), so work out the truth "
+    + "table yourself before you open it - the exam will ask you to, and in "
+    + "Question 2 nobody can hand it to you. Submit <strong>only "
+    + "<code>DecoderSegment.hdl</code></strong>, via the Gradescope link in the <em>Submit my work</em> folder on Minerva."));
+
+  /* ---- Q2 -------------------------------------------------------------- */
+  var q2 = question(b, {title:"2. A complete decoder", advanced:true});
+  q2.appendChild(node("p", null,
+    "Working with other students who have been given the six other segments "
+    + "<em>for the same set of characters</em>, combine your chips into a "
+    + "single decoder that drives all seven segments at once."));
+  q2.appendChild(node("pre", null,
+    "CHIP Decoder {\n    IN in[4];\n    OUT a,b,c,d,e,f,g;\n\n    PARTS:\n\n}"));
+  q2.appendChild(node("p", null,
+    "You need people whose display shows the same ten characters as yours "
+    + "(<strong>" + sp.alphabetName + "</strong>) - about half the class has "
+    + "the other set, so compare tile strips before you start."));
+  q2.appendChild(node("p", null,
+    "You can test the result with <code>7segmentdisplay.py</code>, which reads "
+    + "the simulator's output file and draws the display."));
+  q2.appendChild(node("p", "note",
+    "This question is formative: nothing to submit, and it is not graded. It is "
+    + "still the point of the exercise - a decoder that drives one segment is "
+    + "not much use on its own."));
+
+  /* ---- Q3 -------------------------------------------------------------- */
+  var q3 = question(b, {title:"3. Lamp controller", advanced:true});
+  q3.appendChild(node("p", null,
+    "Devise a truth table for the following circuit. Three simple on-off "
+    + "switches supply the inputs to a logic circuit with a single output. The "
+    + "output (<code>ONOFF</code>) controls a lamp, and changing the position of "
+    + "any switch changes the state of the lamp - if it was on it goes off, and "
+    + "vice versa. Assume that when all switches are off, the lamp is off."));
+  q3.appendChild(node("p", null,
+    "Use the truth table and a Karnaugh map to derive a minimal Boolean "
+    + "expression for the output, then implement the circuit in HDL."));
+  q3.appendChild(node("pre", null,
+    "CHIP LampController {\n    IN A,B,C;\n    OUT ONOFF;\n\n    PARTS:\n\n}"));
+
+  $("sheet").classList.add("on");
+  try{ history.replaceState(null, "", "?e=" + encodeURIComponent(sp.email)); }catch(e){}
+}
+
+/* ---- bootstrap -------------------------------------------------------- */
+document.getElementById("entry-title").textContent = CONFIG.sheetName;
+document.title = CONFIG.moduleTitle + " - " + CONFIG.sheetName;
+
+function submit(){
+  var v = $("email").value.trim(), e = $("err");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+    e.textContent = "That does not look like an email address. Use the address you sign in to Minerva with.";
+    e.classList.add("on"); return;
+  }
+  e.classList.remove("on");
+  render(v);
+}
+$("go").addEventListener("click", submit);
+$("email").addEventListener("keydown", function(ev){ if(ev.key === "Enter") submit(); });
+$("print").addEventListener("click", function(){ window.print(); });
+(function(){
+  var m = /[?&]e=([^&]+)/.exec(location.search);
+  if(m){ var v = decodeURIComponent(m[1]); $("email").value = v; render(v); }
+})();
+</script>
+</body>
+</html>

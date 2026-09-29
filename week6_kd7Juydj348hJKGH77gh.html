@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMP1860 &middot; Activity Sheet 1.5</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/comp1860.css">
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFIG - edit this block each year. Nothing below it should need changing.
+   ═══════════════════════════════════════════════════════════════════════ */
+var CONFIG = {
+  moduleTitle   : "COMP1860 - Computer Systems and Architecture",
+  sheetName     : "Activity Sheet 1.5",
+  sheetSubtitle : "Combinational logic and HDL",
+  dueDate       : "Friday 6 November 2026, 17:00",
+  expectedTime  : "2-3 hours",
+  genAI         : "Amber",
+  genAINote     : "AI tools may be used in an assistive role - you are permitted to use them for testing your code.",
+  outcomes      : [
+    "analysed and designed a combinational logic circuit",
+    "used a hardware simulator to design, test and analyse the behaviour of a digital circuit",
+    "implemented and debugged combinational logic circuits using HDL"
+  ]
+};
+/* ═══════════════════════════════════════════════════════════════════════ */
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="entry noprint">
+    <h1 id="entry-title">Activity Sheet 1.5</h1>
+    <p class="lede">Enter your University of Leeds email address to generate your
+      sheet. You will get the same questions every time, so you can come back to
+      this page whenever you like. Use your browser&rsquo;s Print command to save
+      it as a PDF.</p>
+    <p class="warn-key">Use the <strong>same address you sign in to Minerva
+      with</strong>. Your questions are built from it, so a different address
+      gives you a different sheet &mdash; and you will be marked against the
+      one belonging to your own address. Capitalisation and stray spaces do not
+      matter.</p>
+    <div class="field">
+      <div style="flex:1 1 300px">
+        <label class="lab" for="email">Email address</label>
+        <input type="email" id="email" placeholder="sc12abc@leeds.ac.uk" autocomplete="email" spellcheck="false">
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <button id="go">Generate</button>
+        <button id="print" class="ghost">Print</button>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="sheet"><div id="head"></div><div id="body_"></div></div>
+</div>
+
+<script src="assets/templates.js"></script>
+<script src="assets/comp1860.js"></script>
+<script>
+"use strict";
+
+function render(email){
+  var sp = buildWeek6(email);
+
+  var head = $("head");
+  head.innerHTML = "";
+  head.appendChild(renderTitleBlock(CONFIG, [
+    ["Issued to", sp.email],
+    ["Variant",   sp.fingerprint, "fp"],
+    ["Chip",      "A6Q2.hdl"],
+    ["Due",       CONFIG.dueDate]
+  ]));
+
+  var b = $("body_"); b.innerHTML = "";
+  b.appendChild(variantBanner(sp.email, sp.fingerprint));
+  renderFrontMatter(b, CONFIG);
+
+  /* ---- Q1: fixed circuit + how test and compare files work ------------ */
+  var q1 = question(b, {title:"1. A first HDL chip"});
+  q1.appendChild(node("h4", null, "(a) Build the chip"));
+  q1.appendChild(node("p", null, "Produce an HDL file to simulate the logic circuit below."));
+  var f1 = node("figure");
+  f1.appendChild(drawA6Q1());
+  f1.appendChild(node("figcaption", null, "Inputs A and B &middot; output X"));
+  q1.appendChild(f1);
+  q1.appendChild(node("p", null, "The chip should have the following preamble."));
+  q1.appendChild(node("pre", null,
+    "CHIP A6Q1 {\n    IN A,B;\n    OUT X;\n\n    PARTS:\n\n}"));
+  q1.appendChild(node("p", null,
+    "The filename must match the chip name, i.e. <code>A6Q1.hdl</code> - it is case sensitive."));
+
+  q1.appendChild(node("h4", null, "(b) Test it"));
+  q1.appendChild(node("p", null,
+    "To test an HDL file you need two more files: a test file (<code>.tst</code>) "
+    + "and a compare file (<code>.cmp</code>). The test file describes the inputs "
+    + "to pass to the chip; the compare file says what the output should be."));
+  q1.appendChild(node("p", null, "For the circuit above, the expected outputs are:"));
+  q1.appendChild(truthTableEl(["A","B","X"],
+    [[0,0,0],[0,1,0],[1,0,1],[1,1,0]], 2));
+  q1.appendChild(node("p", null, "The start of the test file for this chip looks like this:"));
+  q1.appendChild(node("pre", null,
+    "load A6Q1.hdl,\noutput-file A6Q1.out,\ncompare-to A6Q1.cmp,\n"
+    + "output-list A B X;\nset A 0,\nset B 0,\neval,\noutput;\n\n"
+    + "set A 0,\nset B 1,\neval,\noutput;"));
+  q1.appendChild(node("p", null, "and the compare file it uses starts like this:"));
+  q1.appendChild(node("pre", null,
+    "| A | B | X |\n| 0 | 0 | 0 |\n| 0 | 1 | 0 |"));
+  q1.appendChild(node("p", null,
+    "The layout of the compare file matters: it must match what the simulator "
+    + "writes to the output file, character for character. For single-bit pins "
+    + "that is one space either side of each value, as above. If the two files "
+    + "disagree the simulator reports a comparison failure and tells you which "
+    + "line differs."));
+  q1.appendChild(node("p", null,
+    "Complete the test and compare files for all input combinations, run the test "
+    + "file in the simulator, then submit <code>A6Q1.hdl</code> via the Gradescope link in the <em>Submit my work</em> folder on Minerva to "
+    + "check it passes."));
+  q1.appendChild(node("div","note",
+    "<strong>Before you submit, check:</strong><ol>"
+    + "<li>the file is named correctly and ends in <code>.hdl</code>;</li>"
+    + "<li>it has no extra, sometimes hidden, <code>.txt</code> extension - "
+    + "text editors on macOS and Windows add these;</li>"
+    + "<li>if you upload a folder or a zip, the file sits at the top level of "
+    + "it and not inside a subfolder.</li></ol>"));
+
+  /* ---- Q2: the personalised portfolio question ------------------------ */
+  var q2 = question(b, {title:"2. Your circuit", portfolio:true});
+  q2.appendChild(node("p", null,
+    "Produce an HDL file to simulate the logic circuit below, and create the test "
+    + "and compare files needed to test it in the simulator."));
+  var f2 = node("figure");
+  f2.appendChild(drawA6Q2(sp));
+  f2.appendChild(node("figcaption", null,
+    "Inputs " + sp.pins[0] + ", " + sp.pins[1] + ", " + sp.pins[2]
+    + " \u00B7 output " + sp.pins[3] + " \u00B7 variant " + sp.fingerprint));
+  q2.appendChild(f2);
+  q2.appendChild(node("p", null,
+    "The chip should have the following preamble. The pin names are taken from "
+    + "your circuit above and are different from other students&rsquo;."));
+  q2.appendChild(node("pre", null,
+    "CHIP A6Q2 {\n    IN " + sp.pins[0] + "," + sp.pins[1] + "," + sp.pins[2]
+    + ";\n    OUT " + sp.pins[3] + ";\n\n    PARTS:\n\n}"));
+  q2.appendChild(node("p", null, "Your circuit must produce the following outputs:"));
+  q2.appendChild(truthTableEl(sp.pins, sp.rows, 3));
+
+  var dl = node("div","dl noprint");
+  var b1 = node("button", null, "Download A6Q2.tst");
+  var b2 = node("button", "ghost", "Download A6Q2.cmp");
+  b1.onclick = function(){ download("A6Q2.tst", week6Tst(sp)); };
+  b2.onclick = function(){ download("A6Q2.cmp", week6Cmp(sp)); };
+  dl.appendChild(b1); dl.appendChild(b2);
+  q2.appendChild(dl);
+  q2.appendChild(node("div","note",
+    "Put these in the same folder as <code>A6Q2.hdl</code> and load the "
+    + "<code>.tst</code> file in the Hardware Simulator. Then submit "
+    + "<strong>only <code>A6Q2.hdl</code></strong>, via the Gradescope link in the <em>Submit my work</em> folder on Minerva. If the variant "
+    + "code in your Gradescope feedback is not "
+    + "<strong>" + sp.fingerprint + "</strong>, tell a member of the module team."));
+
+  /* ---- Q3: multifunction ---------------------------------------------- */
+  var q3 = question(b, {title:"3. A multi-function chip", advanced:true});
+  q3.appendChild(node("p", null,
+    "Produce an HDL file for a chip called <code>multifunction</code>, built from "
+    + "four other internal chips called <code>chip1</code>, <code>chip2</code>, "
+    + "<code>chip3</code> and <code>chip4</code>. It uses a 2-bit wide control bus "
+    + "(<code>CON</code>) to select which internal chip&rsquo;s outputs the "
+    + "multifunction chip should output:"));
+  q3.appendChild(truthTableEl(["CON[1]","CON[0]","X","Y"],
+    [[0,0,"X\u2081","Y\u2081"],[0,1,"X\u2082","Y\u2082"],
+     [1,0,"X\u2083","Y\u2083"],[1,1,"X\u2084","Y\u2084"]], 2));
+  q3.appendChild(node("p", null,
+    "where X\u2099 and Y\u2099 are the outputs of internal chips 1 to 4. You are "
+    + "given the HDL files for all four. Each has four inputs A, B, C and D - the "
+    + "same as the multifunction chip&rsquo;s inputs - and two outputs X and Y."));
+  q3.appendChild(node("p", null, "The chip should have the following preamble."));
+  q3.appendChild(node("pre", null,
+    "CHIP multifunction {\n    IN A,B,C,D,CON[2];\n    OUT X,Y;\n\n    PARTS:\n\n}"));
+
+  $("sheet").classList.add("on");
+  try{ history.replaceState(null, "", "?e=" + encodeURIComponent(sp.email)); }catch(e){}
+}
+
+/* ---- bootstrap -------------------------------------------------------- */
+document.getElementById("entry-title").textContent = CONFIG.sheetName;
+document.title = CONFIG.moduleTitle + " - " + CONFIG.sheetName;
+
+function submit(){
+  var v = $("email").value.trim(), e = $("err");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+    e.textContent = "That does not look like an email address. Use the address you sign in to Minerva with.";
+    e.classList.add("on"); return;
+  }
+  e.classList.remove("on");
+  render(v);
+}
+$("go").addEventListener("click", submit);
+$("email").addEventListener("keydown", function(ev){ if(ev.key === "Enter") submit(); });
+$("print").addEventListener("click", function(){ window.print(); });
+(function(){
+  var m = /[?&]e=([^&]+)/.exec(location.search);
+  if(m){ var v = decodeURIComponent(m[1]); $("email").value = v; render(v); }
+})();
+</script>
+</body>
+</html>

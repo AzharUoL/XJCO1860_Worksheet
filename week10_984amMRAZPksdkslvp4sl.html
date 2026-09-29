@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>COMP1860 &middot; Activity Sheet 1.10</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/comp1860.css">
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   CONFIG - edit this block each year. Nothing below it should need changing.
+   ═══════════════════════════════════════════════════════════════════════ */
+var CONFIG = {
+  moduleTitle   : "COMP1860 - Computer Systems and Architecture",
+  sheetName     : "Activity Sheet 1.10",
+  sheetSubtitle : "Decoding an instruction",
+  dueDate       : "Friday 11 December 2026, 17:00",
+  expectedTime  : "2-3 hours",
+  genAI         : "Amber",
+  genAINote     : "AI tools may be used in an assistive role - you are permitted to use them for testing your HDL files.",
+  outcomes      : [
+    "understood how a bit pattern in an instruction becomes control signals",
+    "read a control table and turned it into combinational logic",
+    "designed a multi-output combinational circuit from a specification"
+  ]
+};
+/* ═══════════════════════════════════════════════════════════════════════ */
+</script>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="entry noprint">
+    <h1 id="entry-title">Activity Sheet 1.10</h1>
+    <p class="lede">Enter your University of Leeds email address to generate your
+      sheet. You will get the same question every time, so you can come back to
+      this page whenever you like.</p>
+    <p class="warn-key">Use the <strong>same address you sign in to Minerva
+      with</strong>. Your questions are built from it, so a different address
+      gives you a different sheet &mdash; and you will be marked against the
+      one belonging to your own address. Capitalisation and stray spaces do not
+      matter.</p>
+    <div class="field">
+      <div style="flex:1 1 300px">
+        <label class="lab" for="email">Email address</label>
+        <input type="email" id="email" placeholder="sc12abc@leeds.ac.uk" autocomplete="email" spellcheck="false">
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:10px">
+        <button id="go">Generate</button>
+        <button id="print" class="ghost">Print</button>
+      </div>
+    </div>
+    <div class="err" id="err"></div>
+  </div>
+
+  <div id="sheet"><div id="head"></div><div id="body_"></div></div>
+</div>
+
+<script src="assets/comp1860.js"></script>
+<script>
+"use strict";
+
+function render(email){
+  var sp = buildWeek10(email);
+
+  var head = $("head");
+  head.innerHTML = "";
+  head.appendChild(renderTitleBlock(CONFIG, [
+    ["Issued to",  sp.email],
+    ["Variant",    sp.fingerprint, "fp"],
+    ["Chip",       "ALUControl.hdl"],
+    ["Due",        CONFIG.dueDate]
+  ]));
+
+  var b = $("body_"); b.innerHTML = "";
+  b.appendChild(variantBanner(sp.email, sp.fingerprint));
+  renderFrontMatter(b, CONFIG);
+
+  /* ---- summary --------------------------------------------------------- */
+  var s = node("section");
+  s.appendChild(node("h4", null, "Coursework summary"));
+  s.appendChild(node("p", null,
+    "Every simulation you have run so far has been driven by you setting input "
+    + "pins by hand. A processor sets them from a stored bit pattern instead - "
+    + "an <em>instruction</em>. The circuit that turns those bits into the "
+    + "control signals the rest of the machine obeys is the "
+    + "<strong>decoder</strong>, and it is the piece that connects the gates you "
+    + "have been building to the idea of a program."));
+  s.appendChild(node("p", null,
+    "This activity builds one. The ALU you met in the lectures does not have a "
+    + "separate circuit per operation: it has a single circuit with six control "
+    + "inputs, and the pattern on those six inputs decides which function comes "
+    + "out. Two of the bits zero an input, two invert an input, one chooses "
+    + "between addition and bitwise AND, and one inverts the result."));
+
+  var lab = node("div", "scroll");
+  var lt = document.createElement("table");
+  var lhr = document.createElement("tr");
+  ["bit", "effect when it is 1"].forEach(function(h){
+    var th = document.createElement("th"); th.textContent = h; lhr.appendChild(th);
+  });
+  lt.appendChild(lhr);
+  [["zx", "set x to 0"], ["nx", "invert x"], ["zy", "set y to 0"],
+   ["ny", "invert y"], ["f", "compute x + y (if 0, compute x AND y)"],
+   ["no", "invert the result"]].forEach(function(r){
+    var tr = document.createElement("tr");
+    r.forEach(function(v, i){
+      var td = document.createElement("td");
+      td.textContent = v;
+      if(i === 1) td.style.textAlign = "left";
+      tr.appendChild(td);
+    });
+    lt.appendChild(tr);
+  });
+  lab.appendChild(lt);
+  s.appendChild(lab);
+  s.appendChild(node("p", null,
+    "The bits are applied in that order, which is how one small circuit computes "
+    + "eighteen different functions. Setting <code>zx</code> and "
+    + "<code>nx</code> turns x into all ones, which is -1 in two's complement; "
+    + "add y to it and you have computed y - 1, without any subtractor."));
+  b.appendChild(s);
+
+  /* ---- Q1 -------------------------------------------------------------- */
+  var q1 = question(b, {title:"1. Your instruction decoder", portfolio:true});
+  q1.appendChild(node("p", null,
+    "In your machine the operation is chosen by a 3-bit field of the "
+    + "instruction, <code>op</code>, giving eight operations. Build the "
+    + "combinational circuit that turns that field into the six ALU control "
+    + "bits."));
+  q1.appendChild(node("p", null, "Your machine's eight operations are:"));
+
+  var wrap = node("div", "scroll");
+  var t = document.createElement("table");
+  var hr = document.createElement("tr");
+  ["op", "binary", "the ALU should compute"].forEach(function(h){
+    var th = document.createElement("th"); th.textContent = h; hr.appendChild(th);
+  });
+  t.appendChild(hr);
+  sp.rows.forEach(function(r){
+    var tr = document.createElement("tr");
+    var c1 = document.createElement("td"); c1.textContent = r[0];
+    var c2 = document.createElement("td");
+    c2.textContent = ((r[0] >> 2) & 1) + "" + ((r[0] >> 1) & 1) + "" + (r[0] & 1);
+    var c3 = document.createElement("td");
+    c3.textContent = r[1]; c3.style.textAlign = "left"; c3.style.fontWeight = "600";
+    tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3);
+    t.appendChild(tr);
+  });
+  wrap.appendChild(t);
+  q1.appendChild(wrap);
+  q1.appendChild(node("p", "note",
+    "Here <code>x</code> and <code>y</code> are the ALU's two data inputs. "
+    + "<code>not x</code> means the bitwise complement, <code>-x</code> the "
+    + "two's complement negation, and <code>x and y</code> the bitwise AND."));
+
+  q1.appendChild(node("h4", null, "(a) Derive the control table"));
+  q1.appendChild(node("p", null,
+    "For each of your eight operations, work out the six control bits that make "
+    + "the ALU compute it, using the table of effects above. Set out your answer "
+    + "as a truth table with <code>op[2]</code>, <code>op[1]</code> and "
+    + "<code>op[0]</code> as inputs and the six control bits as outputs."));
+  q1.appendChild(node("p", "note",
+    "Work each one out from the six effects rather than looking up a table of "
+    + "ALU control bits. Deriving them is the point of part (a), and it is the "
+    + "kind of question the exam asks."));
+
+  q1.appendChild(node("h4", null, "(b) Implement it"));
+  q1.appendChild(node("p", null,
+    "Produce an HDL file with exactly this preamble. Six outputs means six "
+    + "Boolean expressions over three input bits - a Karnaugh map for each will "
+    + "be quicker than guessing, and several of them are far simpler than they "
+    + "first look."));
+  q1.appendChild(node("pre", null,
+    "CHIP ALUControl {\n    IN op[3];\n    OUT zx,nx,zy,ny,f,no;\n\n    PARTS:\n\n}"));
+
+  var dl = node("div", "dl noprint");
+  var bt = node("button", null, "Download ALUControl.tst");
+  var bc = node("button", "ghost", "Download ALUControl.cmp");
+  bt.onclick = function(){ download("ALUControl.tst", aluTst(sp)); };
+  bc.onclick = function(){ download("ALUControl.cmp", aluCmp(sp)); };
+  dl.appendChild(bt); dl.appendChild(bc);
+  q1.appendChild(dl);
+  q1.appendChild(node("div", "note",
+    "The compare file contains the answer to part (a), so derive the control "
+    + "table before you open it. Submit <strong>only "
+    + "<code>ALUControl.hdl</code></strong>, via the Gradescope link in the <em>Submit my work</em> folder on Minerva."));
+
+  /* ---- Q2 -------------------------------------------------------------- */
+  var q2 = question(b, {title:"2. Drive a real ALU", advanced:true});
+  q2.appendChild(node("p", null,
+    "Wire your decoder to the built-in <code>ALU</code> chip so that the whole "
+    + "thing takes an operation code and two 16-bit values, and produces the "
+    + "result. This is, in miniature, what the execute stage of a processor "
+    + "does."));
+  q2.appendChild(node("pre", null,
+    "CHIP MiniALU {\n    IN op[3], x[16], y[16];\n    OUT out[16], zr, ng;\n\n"
+    + "    PARTS:\n\n}"));
+  q2.appendChild(node("p", null,
+    "Write a test script that runs all eight of your operations on a couple of "
+    + "values and check the results are what you expect. If one of your "
+    + "operations is <code>x + y</code>, you have just built a circuit that adds "
+    + "two numbers because a bit pattern told it to."));
+
+  /* ---- Q3 -------------------------------------------------------------- */
+  var q3 = question(b, {title:"3. Wider fields", advanced:true});
+  q3.appendChild(node("p", null,
+    "A real instruction carries more than an operation code. Suppose yours also "
+    + "has a 2-bit destination field saying where the result should be written - "
+    + "to one of three registers, or discarded."));
+  q3.appendChild(node("p", null,
+    "Design a chip that takes the 2-bit field and produces three write-enable "
+    + "signals, at most one of which is 1. Which chip that you have already met "
+    + "does almost all of this for you?"));
+
+  $("sheet").classList.add("on");
+  try{ history.replaceState(null, "", "?e=" + encodeURIComponent(sp.email)); }catch(e){}
+}
+
+/* ---- bootstrap -------------------------------------------------------- */
+document.getElementById("entry-title").textContent = CONFIG.sheetName;
+document.title = CONFIG.moduleTitle + " - " + CONFIG.sheetName;
+
+function submit(){
+  var v = $("email").value.trim(), e = $("err");
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){
+    e.textContent = "That does not look like an email address. Use the address you sign in to Minerva with.";
+    e.classList.add("on"); return;
+  }
+  e.classList.remove("on");
+  render(v);
+}
+$("go").addEventListener("click", submit);
+$("email").addEventListener("keydown", function(ev){ if(ev.key === "Enter") submit(); });
+$("print").addEventListener("click", function(){ window.print(); });
+(function(){
+  var m = /[?&]e=([^&]+)/.exec(location.search);
+  if(m){ var v = decodeURIComponent(m[1]); $("email").value = v; render(v); }
+})();
+</script>
+</body>
+</html>
